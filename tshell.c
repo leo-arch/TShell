@@ -19,46 +19,51 @@
  * MA 02110-1301, USA.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <wait.h>
-#include <errno.h>
-#include <pwd.h>
+#include <stdio.h>  /* printf, fgets */
+#include <stdlib.h> /* exit, calloc, realloc, free */
+#include <string.h> /* strlen, strncpy, strerror */
+#include <unistd.h> /* geteuid, chdir, fork, execvp */
+#include <wait.h>   /* waitpid */
+#include <errno.h>  /* errno */
+#include <pwd.h>    /* getpwuid */
 
 #define DEFAULT_PATH getpwuid(getuid())->pw_dir
 #define MAX_INPUT 4096
 
 static char **parse_input(char *str);
-static void exec_cmd(char **cmds);
+static void exec_cmd(char **cmd);
 
 int
 main(void)
 {
 	char input[MAX_INPUT] = "";
 
-	for (;;) { /* An infinite loop to keep taking commands */
-		printf("> "); /* A basic prompt */
+	for (;;) { /* An infinite loop to keep taking commands. */
+		printf("> "); /* A basic prompt. */
+		/* For a more elaborated prompt, try to get at least the
+		 * current working directory. */
 
-		fgets(input, sizeof(input), stdin); /* Save input into the input array */
+		fgets(input, sizeof(input), stdin); /* Take input. */
+		/* For a usable command line, with cool editing capabilities,
+		 * take a look at readline or libedit. */
 
 		unsigned int inlen = strlen(input);
 		if (inlen > 0)
-			input[inlen - 1] = '\0'; /* Remove trailing new line char */
+			input[inlen - 1] = '\0'; /* Remove trailing new line char. */
 
 		/* Parse the input string and get an array containing
-		 * command and arguments to be pased to the execvp() in exec_cmd(); */
-		char **cmds = parse_input(input);
-		if (cmds == NULL)
+		 * command and arguments. */
+		char **cmd = parse_input(input);
+		if (cmd == NULL)
 			continue;
 
-		exec_cmd(cmds); /* Execute cmds returned by parse_input() */
+		/* Execute the command returned by parse_input(). */
+		exec_cmd(cmd);
 
 		/* Free the cmds array */
-		for (unsigned int i = 0; cmds[i]; i++)
-			free(cmds[i]);
-		free(cmds);
+		for (unsigned int i = 0; cmd[i]; i++)
+			free(cmd[i]);
+		free(cmd);
 	}
 
 	return 0; /* Never reached */
@@ -108,11 +113,12 @@ parse_input(char *str)
 
 /* Execute a given command */
 void
-exec_cmd(char **cmds)
+exec_cmd(char **cmd)
 {
-	if (strcmp(cmds[0], "cd") == 0) {	/* A little 'cd' implementation */
-		if (cmds[1]) {
-			int ret = chdir(cmds[1]);
+	/* A little 'cd' implementation */
+	if (strcmp(cmd[0], "cd") == 0) {
+		if (cmd[1]) {
+			int ret = chdir(cmd[1]);
 			if (ret == -1)
 				perror("cd");
 		} else {
@@ -122,13 +128,19 @@ exec_cmd(char **cmds)
 		return;
 	}
 
-	if (strcmp(cmds[0], "exit") == 0) {	/* Define some exit command */
-		for (unsigned int i = 0; cmds[i]; i++)
-			free(cmds[i]);
-		free(cmds);
+	/* Define some exit command */
+	if (strcmp(cmd[0], "exit") == 0) {
+		for (unsigned int i = 0; cmd[i]; i++)
+			free(cmd[i]);
+		free(cmd);
 
 		exit(0);
 	}
+
+	/* Add here more internal commands. To get an idea enter 'help'
+	 * in bash. */
+
+	/* Pipes, concatenation, stream redirection, etc? Good look with that! */
 
 	pid_t pid = fork();
 	if (pid < 0) { /* Fork failed */
@@ -137,8 +149,8 @@ exec_cmd(char **cmds)
 	}
 
 	if (pid == 0) { /* Child process */
-		if (execvp(cmds[0], cmds) == -1) {
-			fprintf(stderr, "Tshell: %s: %s\n", cmds[0], strerror(errno));
+		if (execvp(cmd[0], cmd) == -1) {
+			fprintf(stderr, "Tshell: %s: %s\n", cmd[0], strerror(errno));
 			exit(1);
 		}
 	} else { /* Parent process */
