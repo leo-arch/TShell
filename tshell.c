@@ -39,7 +39,7 @@ main(void)
 	char input[MAX_INPUT] = "";
 
 	for (;;) { /* An infinite loop to keep taking commands */
-		printf("> ");
+		printf("> "); /* A basic prompt */
 
 		fgets(input, sizeof(input), stdin); /* Save input into the input array */
 
@@ -65,7 +65,9 @@ main(void)
 }
 
 
-char **parse_input(char *str) //Get substrings from 'str' using space as IFS(input field separator)
+/* Get substrings from 'str' using space as IFS (input field separator) */
+char **
+parse_input(char *str)
 {
 	if (!str || !*str)
 		return (char **)NULL;
@@ -104,7 +106,9 @@ char **parse_input(char *str) //Get substrings from 'str' using space as IFS(inp
 	return substr;
 }
 
-void exec_cmd(char **cmds) /* Execute a given command */
+/* Execute a given command */
+void
+exec_cmd(char **cmds)
 {
 	if (strcmp(cmds[0], "cd") == 0) {	/* A little 'cd' implementation */
 		if (cmds[1]) {
